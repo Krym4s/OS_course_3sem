@@ -52,12 +52,8 @@ int main(int argc, char** argv)
             break;  
     }     
     
-
-    if (semop (semid, &unblock_r, 1) == -1)  
-        PERROR ("Impossible to unblock reader.\n")
-
-    if (semop (semid, &unblock_w, 1) == -1)
-        PERROR ("Impossible to unblock writer.\n")
+    if (semop (semid, unblock, 2) == -1)
+        PERROR ("Impossible to unblock pair.\n")
 
     if (semctl (semid, 0, IPC_RMID, NULL) == -1)
         PERROR("Impossible to remove semaphores.\n")
