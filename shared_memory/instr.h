@@ -41,6 +41,11 @@ struct sembuf block_r[2]    = {
 struct sembuf unblock_w     = {BLOCK_W, -1, SEM_UNDO};
 struct sembuf unblock_r     = {BLOCK_R, -1, SEM_UNDO};
 
+struct sembuf unblock[2]    ={
+    {BLOCK_W, -1, SEM_UNDO},
+    {BLOCK_R, -1, SEM_UNDO}
+}
+
 struct sembuf mutex_up      = {MUTEX,    1, SEM_UNDO};
 struct sembuf mutex_dw      = {MUTEX,   -1, SEM_UNDO};
 struct sembuf empty_up      = {EMPTY,    1, 0};
