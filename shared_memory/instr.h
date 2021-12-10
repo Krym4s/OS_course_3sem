@@ -18,7 +18,7 @@ enum SEMS {
     BLOCK_R = 4,// enable only one reader
 };
 
-const char* KEY_PATH    = "/home/krym4s/lun/shared_mem/key.key";
+const char* KEY_PATH    = "/home/krym4s/lun/shared_memory/key.key";
 const int   KEY_ID      = 1;
 const int   PAGE_SZ     = 4096;
 const int   BUF_SZ      = 100;
