@@ -22,48 +22,62 @@ int main(int argc, char** argv)
     if (buffer == NULL)
         PERROR ("Buffer was not allocated.\n");
 
-     if (semop (semid, block_r, 2) == -1)
+    if (semop (semid, block_r, 2) == -1)
         PERROR ("cannot block reader.\n")
 
-    if (semop (semid, start_reader, 2) == -1)   // checks if ALIVE_W is set
-        PERROR ("Reader cannot start working.\n")  // sets ALIVE_R
+    errno = 0;
+    bool nb = true;
+
+    /*if (semctl(semid, FULL, GETVAL, 0) == 1)
+    {
+        if (semctl (semid, EMPTY, SETVAL, 0) == -1)
+            PERROR ("Impossible to set emptiness.\n")
+
+        if (*memp == 0)
+            nb = false;
+            
+        if (semctl (semid, FULL, SETVAL, 1) == -1)
+            PERROR ("Impossible to set emptiness.\n")
+    }else*/
+    if (semctl(semid, FULL, GETVAL, 0) != 1)
+        if (semctl (semid, EMPTY, SETVAL, 1) == -1)
+            PERROR ("Impossible to set emptiness.\n")
+
+    if (errno)
+        PERROR("Access error.\n");
 
     while (true)
     {
         if (semop (semid, &full_dw, 1) == -1)   // checks if shm is full
             PERROR ("Impossible to check fullness of shm.\n")
 
-        if (semop (semid, &mutex_dw, 1) == -1)  // blocks other process interruptions 
-            PERROR ("Impossible to block other process interruptions.\n")
-
         char n_wr = *memp;
-        
-        memcpy (buffer, memp + 1, n_wr);
-        write  (0, buffer, n_wr);
-        memset (memp, '\0', PAGE_SZ);
-        
-        if (semop (semid, &mutex_up, 1) == -1)  // unblocks other process interruptions
-            PERROR ("Impossible to unblock for interruptions.\n")
 
-        if (semop (semid, &empty_up, 1) == -1)  // signals to writer to start writing to shm
+        if (n_wr == 0 && nb)
+        {   
+            if (semctl (semid, 0, SETALL, sems) == -1)
+                PERROR("Very bad.\n")   
+            break; 
+        }
+    
+        memcpy (buffer, memp + 1, n_wr);
+        if (write  (0, buffer, n_wr) == -1)
+            PERROR ("WRITE ERROR.\n");
+        memset (memp, '\0', PAGE_SZ);
+
+        
+        nb = true;
+    
+        if (semctl (semid, EMPTY, SETVAL, 1) == -1)
             PERROR ("Impossible to set emptiness.\n")
 
-        if (n_wr == 0)
-            break;  
-    }     
-    
-    if (semop (semid, unblock, 2) == -1)
-        PERROR ("Impossible to unblock pair.\n")
 
-    if (semctl (semid, 0, IPC_RMID, NULL) == -1)
-        PERROR("Impossible to remove semaphores.\n")
+    }
+
+    //printf ("\nText readed successfully.\n");
 
     if (shmdt(memp) == -1)
         PERROR ("Impossible to detach from shared memory.\n")    
-
-    if (shmctl (shmid, IPC_RMID, NULL) == -1)
-        PERROR ("Impossible to remove shared memory.\n")
-
 
     return 0;
 }
