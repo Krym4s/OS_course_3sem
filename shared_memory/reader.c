@@ -26,11 +26,15 @@ int main(int argc, char** argv)
         PERROR ("cannot block reader.\n")
 
     errno = 0;
-   
+
     if (semctl(semid, FULL, GETVAL, 0) != 1)
+    {
+        if (semctl (semid, MUTEX, SETVAL, 0) == -1)
+            PERROR ("Impossible to set emptiness.\n")
         if (semctl (semid, EMPTY, SETVAL, 1) == -1)
             PERROR ("Impossible to set emptiness.\n")
-
+    }
+        
     if (errno)
         PERROR("Access error.\n");
 
@@ -52,9 +56,6 @@ int main(int argc, char** argv)
         if (write  (0, buffer, n_wr) == -1)
             PERROR ("WRITE ERROR.\n");
         memset (memp, '\0', PAGE_SZ);
-
-        
-        nb = true;
     
         if (semctl (semid, EMPTY, SETVAL, 1) == -1)
             PERROR ("Impossible to set emptiness.\n")
