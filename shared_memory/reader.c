@@ -25,45 +25,46 @@ int main(int argc, char** argv)
     if (semop (semid, block_r, 2) == -1)
         PERROR ("cannot block reader.\n")
 
-    errno = 0;
+    if (semctl (semid, FULL, SETVAL, 0) == -1)
+        PERROR ("Cannot set full to 0.\n")
 
-    if (semctl(semid, FULL, GETVAL, 0) != 1)
-    {
-        if (semctl (semid, MUTEX, SETVAL, 0) == -1)
-            PERROR ("Impossible to set emptiness.\n")
-        if (semctl (semid, EMPTY, SETVAL, 1) == -1)
-            PERROR ("Impossible to set emptiness.\n")
-    }
-        
-    if (errno)
-        PERROR("Access error.\n");
+    if (semctl (semid, EMPTY, SETVAL, 1) == -1)
+        PERROR ("Cannot set empty to 1.\n")
+
+    if (semop (semid, connect_r, 5) == -1)
+        PERROR ("Impossible to find writer.\n")
+
+    //exit(0);
 
     while (true)
     {
-        if (semop (semid, &full_dw, 1) == -1)   // checks if shm is full
+        if (semop (semid, full_dw, 3) == -1)   // checks if shm is full
             PERROR ("Impossible to check fullness of shm.\n")
-
+            
         char n_wr = *memp;
 
         if (n_wr == 0)
-        {   
-            if (semctl (semid, 0, SETALL, sems) == -1)
-                PERROR("Very bad.\n")   
+        {   exit(0);  
+            if (semop (semid, finish_r, 4) == -1)
+                PERROR ("Impossible to finish.\n")
             break; 
         }
+
+        if (semop (semid, check, 4) == -1)
+            PERROR ("Other process died.\n")
     
         memcpy (buffer, memp + 1, n_wr);
         if (write  (0, buffer, n_wr) == -1)
             PERROR ("WRITE ERROR.\n");
         memset (memp, '\0', PAGE_SZ);
     
-        if (semctl (semid, EMPTY, SETVAL, 1) == -1)
+        if (semop (semid, empty_up, 3) == -1)
             PERROR ("Impossible to set emptiness.\n")
-
 
     }
 
-    //printf ("\nText readed successfully.\n");
+    if (semctl (semid, 0, SETALL, defaultSem) == -1)
+        PERROR ("Impossible to set default values.\n")
 
     if (shmdt(memp) == -1)
         PERROR ("Impossible to detach from shared memory.\n")    
