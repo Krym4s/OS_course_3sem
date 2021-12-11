@@ -28,35 +28,36 @@ int main(int argc, char** argv)
     if (semop (semid, block_w, 2) == -1)
         PERROR ("cannot block writer.\n")
 
+    if (semop (semid, connect_w, 5) == -1)
+        PERROR ("Impossible to find reader.\n")
+
+    if (semop (semid, check, 4) == -1)
+        PERROR ("Other process died.\n")
+
     errno = 0;      
     char success_read = 1;
+
     while (success_read)
     {   
-        if (semop (semid, &empty_dw, 1) == -1) // checks if shm is emmpty
+        if (semop (semid, empty_dw, 3) == -1) // checks if shm is emmpty
             PERROR ("Impossible to check emptiness of shm.\n")
-    
+
         if ((success_read = read (fd, memp + 1, BUF_SZ)) == -1)
             PERROR ("Read from file error.\n")
+
         *memp = success_read;
         memset(memp + success_read + 1, '\0', BUF_SZ - success_read);
 
-        if (success_read == 0)
-        {
-            if (semop (semid, &finish, 1))
-                PERROR ("Impossible to undo undo.\n");
+        if (semop (semid, check, 4) == -1)
+            PERROR ("Other process died.\n")
 
-            if (semop (semid, &mutex_dw, 1))
-                PERROR("Impossible to end,\n")
 
-            break;
-        }
-            
-
-        if (semctl (semid, FULL, SETVAL, 1) == -1)
+        if (semop (semid, full_up, 3) == -1)
             PERROR ("Impossible to set fullness.\n")
-    }
 
-    //printf ("\nText writed successfully.\n");
+        if (success_read == 0)
+            break;
+    }
 
     if (shmdt(memp) == -1)
         PERROR ("Impossible to detach from shared memory.\n")    
@@ -65,3 +66,4 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
