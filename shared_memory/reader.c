@@ -34,8 +34,6 @@ int main(int argc, char** argv)
     if (semop (semid, connect_r, 5) == -1)
         PERROR ("Impossible to find writer.\n")
 
-    //exit(0);
-
     while (true)
     {
         if (semop (semid, full_dw, 3) == -1)   // checks if shm is full
@@ -44,7 +42,7 @@ int main(int argc, char** argv)
         char n_wr = *memp;
 
         if (n_wr == 0)
-        {   exit(0);  
+        {     
             if (semop (semid, finish_r, 4) == -1)
                 PERROR ("Impossible to finish.\n")
             break; 
@@ -63,8 +61,8 @@ int main(int argc, char** argv)
 
     }
 
-    if (semctl (semid, 0, SETALL, defaultSem) == -1)
-        PERROR ("Impossible to set default values.\n")
+    if (semop (semid, reader_end, 4) == -1)
+        PERROR ("Impossible to end reader.\n")
 
     if (shmdt(memp) == -1)
         PERROR ("Impossible to detach from shared memory.\n")    
