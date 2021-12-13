@@ -17,7 +17,7 @@ enum SEMS {
     BLOCK_R = 3,// enable only one reader
 };
 
-const char* KEY_PATH    = "/home/krym4s/lun/shared_memory/key.key";
+const char* KEY_PATH    = "/home/krym4s/lun/sems/key.key";
 const int   KEY_ID      = 1;
 const int   PAGE_SZ     = 4096;
 const int   BUF_SZ      = 100;
@@ -59,6 +59,23 @@ struct sembuf empty_begin[2] = {
     {EMPTY, 0, 0},
     {EMPTY, 1, SEM_UNDO}
 };
+
+struct sembuf writer_end[4] = 
+{
+    {FULL,  1, SEM_UNDO},
+    {FULL, -1, 0},
+    {BLOCK_R, -1, SEM_UNDO},
+    {BLOCK_W, -1, SEM_UNDO}
+};
+
+struct sembuf reader_end[4] =
+{
+    {EMPTY,  1, SEM_UNDO},
+    {EMPTY, -1, 0},
+    {BLOCK_R, -1, SEM_UNDO},
+    {BLOCK_W, -1, SEM_UNDO}
+};
+
 
 struct sembuf check[4] = {
     {BLOCK_R, -2, IPC_NOWAIT},
