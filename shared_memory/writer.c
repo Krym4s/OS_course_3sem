@@ -59,6 +59,9 @@ int main(int argc, char** argv)
             break;
     }
 
+    if (semop (semid, writer_end, 4) == -1)
+        PERROR ("Impossible to end reader.\n")
+
     if (shmdt(memp) == -1)
         PERROR ("Impossible to detach from shared memory.\n")    
 
@@ -66,4 +69,3 @@ int main(int argc, char** argv)
 
     return 0;
 }
-
