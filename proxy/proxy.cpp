@@ -82,7 +82,6 @@ void ChildFunction (struct ChildInfo* childInfo, char* filePath, const unsigned 
     if (childInfo->id == 0)
     {
         input = open (filePath, O_RDONLY);
-
         if (close (childInfo->fifoFromPrnt[READ]) == -1)
             PERROR ("Impossible to close input.\n")
     }
@@ -92,7 +91,6 @@ void ChildFunction (struct ChildInfo* childInfo, char* filePath, const unsigned 
     if (childInfo->id == nChild - 1)
     {
         output = STDOUT_FILENO;
-
         if (close (childInfo->fifoToPrnt[WRITE]) == -1)
             PERROR ("Impossible to close output.\n")
     }
@@ -117,7 +115,6 @@ void ChildFunction (struct ChildInfo* childInfo, char* filePath, const unsigned 
     while (true)
     {
         read_success = read (input, buffer, buff_sz);
-        
         if (read_success == -1)
             PERROR ("Error in reading to child buffer.\n")
 
@@ -156,13 +153,13 @@ void ParentFunction (struct ChildInfo* childInfos, const unsigned nChild)
 		    PERROR("Impossible to set write to unblock.\n")
 	}	
 
-	size_t cur_alive = 0;
+	size_t beg_idx = 0;
     int connect = nChild - 1;
-	while (cur_alive < connect){
+	while (beg_idx < connect){
 		FD_ZERO(&output);
 		FD_ZERO(&input);
 
-		for (size_t idx = cur_alive; idx < connect; idx++){
+		for (size_t idx = beg_idx; idx < connect; idx++){
 
 			if (connections[idx].input != -1 && connections[idx].empty > 0)
 				FD_SET(connections[idx].input, &input);
@@ -175,26 +172,24 @@ void ParentFunction (struct ChildInfo* childInfos, const unsigned nChild)
 				maxFD = connections[idx].output;
 		}	
 
-		errno = 0;
 		if (select(maxFD + 1, &input, &output, NULL, NULL) < 0)
 			PERROR("Error in select\n")	    
 	    maxFD = -1;			    
 
-	    for (size_t idx = cur_alive; idx < connect; idx++){
+	    for (size_t idx = beg_idx; idx < connect; idx++){
 			if (FD_ISSET(connections[idx].input, &input) && connections[idx].empty > 0)
 				ReadToBuffer(&connections[idx], idx);
             if (FD_ISSET(connections[idx].output, &output) && connections[idx].busy > 0)
 				WriteFromBuffer(&connections[idx], idx);
 			
-
 	        if (connections[idx].input == -1 && connections[idx].output != -1 && connections[idx].busy == 0) {
 				close(connections[idx].output);								
 				connections[idx].output = -1;
 
-				if (cur_alive != idx)
+				if (beg_idx != idx)
 	                PERROR("One of childs is dead\n")
 
-	            cur_alive++;
+	            beg_idx++;
 				free(connections[idx].buffer);
 			}
 		}
@@ -219,12 +214,12 @@ void WriteFromBuffer(struct Connection* connection, const int id)
         connection->empty += ret_write;
 
     if (connection->iWrite + ret_write == connection->buf_size) {
-        connection->iWrite = 0;
         connection->busy = connection->iRead;
+        connection->iWrite = 0; 
     }
     else {
-        connection->iWrite += ret_write;
         connection->busy -= ret_write;
+        connection->iWrite += ret_write; 
     }
 }
 
@@ -285,13 +280,4 @@ void TrackPrntDied(pid_t ppid)
 
     if (ppid != getppid())
     	PERROR("Parent is not correct.\n")
-}
-
-void UpdateConnect (struct Connection* connection, struct ChildInfo* childInfos, unsigned nChild)
-{
-    for (unsigned idx; idx < nChild; idx++)
-    {
-        connection[idx].input  = childInfos[idx].fifoToPrnt[READ];
-        connection[idx].output = childInfos[idx].fifoFromPrnt[WRITE];
-    }
 }
