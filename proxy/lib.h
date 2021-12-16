@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <sys/prctl.h>
 #include <math.h>
+#include <poll.h>
 
 
 #pragma once
@@ -22,7 +23,7 @@ enum MODES{
     WRITE = 1,
 };
 
-const size_t MAXBUFFSIZE = 1000000;
+const size_t MAXBUFFSIZE = 10000;
 
 #define DEBUG_MODE
 
@@ -37,8 +38,8 @@ struct ChildInfo {
 };
 
 struct Connection {
-    int fd_writer;
-    int fd_reader;
+    int input;
+    int output;
 
     size_t buf_size;
     char* buffer;
@@ -49,13 +50,15 @@ struct Connection {
     size_t busy;
     size_t empty;
 };
-  
-void ChildFunction(struct ChildInfo* childInfo, char* filePath);
-void ParentFunction(struct ChildInfo* childInfos, const size_t numChilds);
-size_t CountSize(const unsigned nChild, const unsigned numChilds);
-void WriteFromBuffer(struct Connection* connection, const int id);
-void ReadToBuffer(struct Connection* connection, const int id);
+
+const unsigned buff_sz = 4096;
+
+void CloseChildExtraPipes (struct ChildInfo* chInfos, unsigned idx);
 void TrackPrntDied(pid_t ppid);
-void PrepareBuffer(struct Connection* connections, struct ChildInfo* childInfos, 
-                               const size_t nChild, const size_t numChilds);
-void CloseUnusedPipes(struct ChildInfo* childInfos, const size_t curChild);
+void ChildFunction (struct ChildInfo* childInfo, char* filePath, const unsigned nChild);
+void ParentFunction (struct ChildInfo* childInfo, const unsigned nChild);
+void PrepareBuffer(struct Connection* connections, struct ChildInfo* childInfos,
+							   const unsigned idx, const unsigned nChilds);
+unsigned CountSize(const unsigned idx, const unsigned nChilds);
+void ReadToBuffer(struct Connection* connection, const int id); 
+void WriteFromBuffer(struct Connection* connection, const int id);                         
